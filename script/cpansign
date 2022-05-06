@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-our $VERSION = '0.06p';
+our $VERSION = '0.06_01';
 
 =encoding utf8
 
