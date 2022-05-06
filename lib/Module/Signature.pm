@@ -438,6 +438,8 @@ sub _sign_gpg {
 
     my $gpg = _which_gpg();
 
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => version %s\n", __LINE__, $gpg;
+
     local *D;
     my $set_key = '';
     $set_key = qq{--default-key "$AUTHOR"} if($AUTHOR);
@@ -446,10 +448,14 @@ sub _sign_gpg {
     print D $plaintext;
     close D;
 
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => after D\n", __LINE__;
+
     (-e "$sigfile.tmp" and -s "$sigfile.tmp") or do {
         unlink "$sigfile.tmp";
         die "Cannot find $sigfile.tmp, signing aborted.\n";
     };
+
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => after delete sigfile\n", __LINE__;
 
     open D, "< $sigfile.tmp" or die "Cannot open $sigfile.tmp: $!";
 
@@ -465,6 +471,8 @@ sub _sign_gpg {
     close D;
 
     unlink("$sigfile.tmp");
+
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => after write new sigfile\n", __LINE__;
 
     my $key_id;
     my $key_name;
