@@ -438,8 +438,23 @@ sub _sign_gpg {
 
     my $gpg = _which_gpg();
 
-    printf STDERR "DEBUG: __%04d__ _sign_gpg() => version %s\n", __LINE__, $gpg;
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => which:%s\n", __LINE__, $gpg;
+    
+    if( exists $ENV{secret_phrase} ) {        # let's see if I can get it to cache the pw here
+        printf STDERR "DEBUG: __%04d__ _sign_gpg() => secret_phrase block\n", __LINE__;
 
+        local *PW;
+        # gpg -o encrypted.asc --batch --yes --passphrase-fd 0 --armor --symmetric secret.asc
+        open PW, "| $gpg --batch --passphrase-fd 0 --armor --symmetric $0"
+            or die "Could not call $gpg symmetric: $!";
+        print PW $ENV{secret_phrase};
+        close PW;
+
+        printf STDERR "DEBUG: __%04d__ _sign_gpg() => done with secret_phrase block\n", __LINE__;
+    }
+
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => before clearsign\n", __LINE__;
+    
     local *D;
     my $set_key = '';
     $set_key = qq{--default-key "$AUTHOR"} if($AUTHOR);
@@ -448,7 +463,7 @@ sub _sign_gpg {
     print D $plaintext;
     close D;
 
-    printf STDERR "DEBUG: __%04d__ _sign_gpg() => after D\n", __LINE__;
+    printf STDERR "DEBUG: __%04d__ _sign_gpg() => after clearsign\n", __LINE__;
 
     (-e "$sigfile.tmp" and -s "$sigfile.tmp") or do {
         unlink "$sigfile.tmp";
