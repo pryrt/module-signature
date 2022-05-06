@@ -1,5 +1,5 @@
 package Module::Signature;
-$Module::Signature::VERSION = '0.88';
+$Module::Signature::VERSION = '0.88_01';
 
 use 5.005;
 use strict;
@@ -153,6 +153,7 @@ sub _verify {
 sub _has_gpg {
     my $gpg = _which_gpg() or return;
     `$gpg --version` =~ /GnuPG.*?(\S+)\s*$/m or return;
+    print STDERR "DEBUG: called _has_gpg -> $1\n";
     return $1;
 }
 
@@ -236,6 +237,7 @@ sub _which_gpg {
         my $version = `$gpg_bin --version 2>&1`;
         if( $version && $version =~ /GnuPG/ ) {
             $which_gpg = $gpg_bin;
+            print STDERR "DEBUG: called _which_gpg -> $which_gpg\n";
             return $which_gpg;
         }
     }
@@ -398,6 +400,8 @@ sub sign {
     my $plaintext = _mkdigest();
 
     my ($mani, $file) = _fullcheck($args{skip});
+    
+    print STDERR "DEBUG: sign(%args)\n";
 
     if (@{$mani} or @{$file}) {
         warn "==> MISMATCHED content between MANIFEST and the distribution! <==\n";
@@ -426,6 +430,8 @@ sub sign {
 
 sub _sign_gpg {
     my ($sigfile, $plaintext, $version) = @_;
+
+    print STDERR "DEBUG: _sign_gpg(@_)\n";
 
     die "Could not write to $sigfile"
         if -e $sigfile and (-d $sigfile or not -w $sigfile);
@@ -504,6 +510,8 @@ sub _sign_gpg {
 
 sub _sign_crypt_openpgp {
     my ($sigfile, $plaintext) = @_;
+
+    print STDERR "DEBUG: _sign_crypt_openpgp(@_)\n";
 
     require Crypt::OpenPGP;
     my $pgp = Crypt::OpenPGP->new;
