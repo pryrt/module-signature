@@ -445,8 +445,8 @@ sub _sign_gpg {
 
         local *PW;
         # gpg -o encrypted.asc --batch --yes --passphrase-fd 0 --armor --symmetric secret.asc
-        open PW, "| $gpg --batch --passphrase-fd 0 --armor --symmetric $0"
-            or die "Could not call $gpg symmetric: $!";
+        open PW, "| $gpg --clearsign --passphrase-fd 0 --armor $0"
+            or die "Could not call $gpg clearsign cache-pw: $!";
         print PW $ENV{secret_phrase};
         close PW;
 
