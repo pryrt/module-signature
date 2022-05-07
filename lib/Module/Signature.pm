@@ -440,28 +440,37 @@ sub _sign_gpg {
 
     printf STDERR "DEBUG: __%04d__ _sign_gpg() => which:%s\n", __LINE__, $gpg;
     
-    if( exists $ENV{secret_phrase} ) {        # let's see if I can get it to cache the pw here
-        printf STDERR "DEBUG: __%04d__ _sign_gpg() => secret_phrase block\n", __LINE__;
-
-        local *PW;
-        # gpg -o encrypted.asc --batch --yes --passphrase-fd 0 --armor --symmetric secret.asc
-        open PW, "| $gpg --batch --clearsign --passphrase-fd 0 --armor $0"
-            or die "Could not call $gpg clearsign cache-pw: $!";
-        print PW $ENV{secret_phrase};
-        close PW;
-
-        printf STDERR "DEBUG: __%04d__ _sign_gpg() => done with secret_phrase block\n", __LINE__;
+    my $ptfile = "$sigfile.plaintext";
+    if( exists $ENV{secret_phrase} ) {
+        printf STDERR "DEBUG: __%04d__ _sign_gpg() => start plaintext output ($ptfile)\n", __LINE__;
+        local *P;
+        open P, "> $ptfile"
+            or die "Could not write $ptfile: $!";
+        print P $plaintext;
+        close P;
     }
-
+    
     printf STDERR "DEBUG: __%04d__ _sign_gpg() => before clearsign\n", __LINE__;
     
     local *D;
     my $set_key = '';
     $set_key = qq{--default-key "$AUTHOR"} if($AUTHOR);
-    open D, "| $gpg $set_key --clearsign --openpgp --personal-digest-preferences RIPEMD160 >> $sigfile.tmp"
-        or die "Could not call $gpg: $!";
-    print D $plaintext;
-    close D;
+    if( exists $ENV{secret_phrase} and -s $ptfile ) {
+        # this version pipes the secret phrase to the application, and the application reads from $ptfile
+        my $pipecmd = "| $gpg $set_key --passphrase-fd 0 --clearsign --openpgp --personal-digest-preferences RIPEMD160 $ptfile >> $sigfile.tmp";
+        printf STDERR "DEBUG: __%04d__ %s\n", $pipecmd;
+        open D, $pipecmd
+            or die "Could not call $gpg: $!";
+        print D $ENV{secret_phrase};
+        close D;
+        unlink $ptfile;
+    } else {
+        # the original version just pipes the plaintext to the application, and relies on pinentry for the password
+        open D, "| $gpg $set_key --clearsign --openpgp --personal-digest-preferences RIPEMD160 >> $sigfile.tmp"
+            or die "Could not call $gpg: $!";
+        print D $plaintext;
+        close D;
+    }
 
     printf STDERR "DEBUG: __%04d__ _sign_gpg() => after clearsign\n", __LINE__;
 
@@ -474,6 +483,7 @@ sub _sign_gpg {
 
     open D, "< $sigfile.tmp" or die "Cannot open $sigfile.tmp: $!";
 
+    local *S;
     open S, "> $sigfile" or do {
         unlink "$sigfile.tmp";
         die "Could not write to $sigfile: $!";
