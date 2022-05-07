@@ -457,16 +457,16 @@ sub _sign_gpg {
     $set_key = qq{--default-key "$AUTHOR"} if($AUTHOR);
     if( exists $ENV{secret_phrase} and -s $ptfile ) {
         # this version pipes the secret phrase to the application, and the application reads from $ptfile
-        my $pipecmd = "| $gpg $set_key --batch --yes --passphrase-fd 0 --clearsign --openpgp --personal-digest-preferences RIPEMD160 $ptfile >> $sigfile.tmp";
+        my $pipecmd = "| $gpg $set_key --batch --yes --pinentry-mode loopback --passphrase-fd 0 -o $sigfile.tmp --clearsign --openpgp --personal-digest-preferences RIPEMD160 $ptfile";
         printf STDERR "DEBUG: __%04d__ %s\n", __LINE__, $pipecmd;
         open D, $pipecmd
             or die "Could not call $gpg: $!";
         print D $ENV{secret_phrase};
         close D;
         unlink $ptfile;
+        printf STDERR "DEBUG: __%04d__ %s %s\n", __LINE__, "$sigfile.tmp", -f "$sigfile.tmp" ? 'exists' : 'does not exist';
         
-        # older experiment: # gpg -o encrypted.asc --batch --yes --passphrase-fd 0 --armor --symmetric secret.asc
-        
+        # older experiment: # gpg -o encrypted.asc --batch --yes --passphrase-fd 0 --armor --symmetric secret.asc        
     } else {
         # the original version just pipes the plaintext to the application, and relies on pinentry for the password
         open D, "| $gpg $set_key --clearsign --openpgp --personal-digest-preferences RIPEMD160 >> $sigfile.tmp"
